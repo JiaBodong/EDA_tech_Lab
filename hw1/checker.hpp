@@ -5,7 +5,7 @@
 #include <set>
 #include <algorithm>
 #include <limits>
-
+#include <cstdint>
 class Checker_Node
 {
 public:

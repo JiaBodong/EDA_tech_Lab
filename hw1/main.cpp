@@ -6,7 +6,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
-
+#include <cstdint>
 using namespace std;
 
 int main( int argc, char* argv[] )
