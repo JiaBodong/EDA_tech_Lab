@@ -129,56 +129,73 @@ private:
     for (auto i = 1u; i <= num_operations; ++i)
     {
       auto const& op = prob.operations.at(i);
+
+      if(op.predecessors.size()==1 && op.predecessors.at(0)==0){
+        continue;
+      }
+
       for (auto const& pred : op.predecessors)
       {
+       
         auto const& pred_op = prob.operations.at(pred);
         auto delay = prob.resources.at(pred_op.type).delay;
 
+        Constraint constraint;
+        constraint.type = GE;
+        constraint.constant = delay;
         for (auto l = 1u; l <= num_timeframes; ++l)
         {
-          Constraint constraint;
-          constraint.type = GE;
-          constraint.constant = delay;
-
+        
           constraint.variables.emplace_back(Variable({pred, l}));
-          constraint.coefficients.emplace_back(1);//1*
+          constraint.coefficients.emplace_back(-(int)l); // 1*
 
           constraint.variables.emplace_back(Variable({i, l}));
-          constraint.coefficients.emplace_back(-1);//-1*
-
-          constraints.emplace_back(constraint);
+          l = static_cast<int64_t>(l);
+ 
+          constraint.coefficients.emplace_back(l); // -1*
         }
+        constraints.emplace_back(constraint);
       }
     }
   }
 
   void resource_bounds()
   {
-    for (auto l = 1u; l <= num_timeframes; ++l)
+    /* For each type of resource: for every timeframe 
+     * sum of the resource type should be LE # of resources 
+     */
+    for ( auto const& ops: prob.resources )
     {
-      for (auto const& [type, resource] : prob.resources)
+      
+      auto resource = ops.second;
+
+      char type = ops.first;
+      if ( type == '0' ) continue;
+
+      for ( auto l = 1u; l <= num_timeframes; ++l )
       {
         Constraint constraint;
         constraint.type = LE;
-        
-
-        for (auto i = 1u; i <= num_operations; ++i)
+        constraint.constant = resource.num;
+        for ( auto d = 0u; d < resource.delay; ++d)
         {
-          auto const& op = prob.operations.at(i);
-          auto delay = prob.resources.at(op.type).delay;
-          if (op.type == type)
+          if ( l > d )
           {
-            constraint.variables.emplace_back(Variable({i, l}));
-            constraint.coefficients.emplace_back(1);
+            for ( auto i = 1u; i <= num_operations; ++i )
+            {
+              auto const& op = prob.operations.at(i);
+              if ( type == op.type )
+              {
+                  constraint.variables.emplace_back( Variable( {i, l - d} ) );
+                  constraint.coefficients.emplace_back(1);
+              }
+            }
           }
-          constraint.constant = delay;
         }
-        
-        constraints.emplace_back(constraint);
+        constraints.emplace_back( constraint );
       }
     }
   }
-
   /* Feel free to declare more helper functions if needed. */
 
 private:
